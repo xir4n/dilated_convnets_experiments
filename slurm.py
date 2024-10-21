@@ -1,9 +1,9 @@
 import os
 
 script_name = "main"
-script_path = f'{os.getenv("SCRATCH")}/DILATED_CONV1D/main.py'
+script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
 project_name = "lr_tunning"
-save_foler = f'{os.getenv("SCRATCH")}/outputs/DILATED_CONV1D/{project_name}'
+save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
 archs = ["MuReNN", "Conv1D", "WaveNet"]
 
 # Model hyperparameters
