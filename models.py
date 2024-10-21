@@ -105,7 +105,7 @@ class Conv1D(Plmodel):
         super(Conv1D, self).__init__(**kwargs)
         self.conv1ds = nn.ParameterList(
             [nn.Sequential(
-                nn.Conv1d(1, self.Q, kernel_size=self.T, dilation=2**j, padding='same'),
+                nn.Conv1d(1, self.Q, kernel_size=self.T, dilation=2**(j+1), padding='same'),
                 nn.ReLU(),
             ) for j in range(self.J)]
         )
@@ -154,7 +154,7 @@ class WaveNetConv(nn.Module):
 class WaveNet(Plmodel):
     def __init__(self, **kwargs):
         super(WaveNet, self).__init__(**kwargs)
-        self.convs = nn.ModuleList([WaveNetConv(self.Q, self.Q, self.Q, self.T, 2**j)
+        self.convs = nn.ModuleList([WaveNetConv(self.Q, self.Q, self.Q, self.T, 2**(j+1))
                                     for j in range(self.J)])
         self.classifer = nn.Sequential(
             *[nn.ReLU(), nn.Conv1d(self.Q, self.Q, 1), nn.ReLU(), nn.Conv1d(self.Q, 1, 1),
