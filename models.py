@@ -130,7 +130,7 @@ class Conv1D(Plmodel):
             ) for j in self.J]
         )
 
-        self.pool = nn.MaxPool1d(kernel_size=2**(max(self.J) + 1))
+        # self.pool = nn.MaxPool1d(kernel_size=2**(max(self.J) + 1))
         self.classifier = nn.Sequential(
             nn.Linear(len(self.J) * self.Q, 1),
             nn.Sigmoid(),
@@ -143,7 +143,7 @@ class Conv1D(Plmodel):
             xj = conv1d(x)
             xjs.append(xj)
         xj = torch.cat(xjs, dim=1) 
-        xj = self.pool(xj)
+        # xj = self.pool(xj)
         logits = self.classifier(xj.mean(dim=-1).reshape(xj.shape[0], -1))
         return logits
     
