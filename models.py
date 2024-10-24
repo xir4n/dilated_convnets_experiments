@@ -1,7 +1,10 @@
+import types
 import torch
 import murenn
 from torch import nn
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import grad_norm
+import data
 
 
 class Plmodel(pl.LightningModule):
@@ -10,19 +13,28 @@ class Plmodel(pl.LightningModule):
         self.save_hyperparameters()
         self.T = T
         self.Q = Q
-        self.J = J
+        if isinstance(J, int):
+            self.J = range(J)
+        elif isinstance(J, list):
+            self.J = J
         self.loss = nn.BCELoss()
         self.lr = lr
         self.train_outputs = {'loss': [], 'acc': []}
         self.test_outputs = {'acc': []}
         self.val_outputs = {'loss': [], 'acc': []}
+        
 
     @staticmethod
     def add_model_specific_args(parent_parser):
+        def int_or_list(value):
+            try:
+                return int(value)
+            except ValueError:
+                return list(map(int, value.split(',')))[:-1]
         parser = parent_parser.add_argument_group("model")
         parser.add_argument('--Q', type=int, default=6)
         parser.add_argument('--T', type=int, default=4)
-        parser.add_argument('--J', type=int, default=6)
+        parser.add_argument('--J', type=int_or_list, default=6, help='Index of octaves to be trained, if list, end by -1 (e.g. 1,-1); if int, all octaves from 0 to J-1 will be trained')
         parser.add_argument('--lr', type=float, default=1e-3)
         return parent_parser
     
@@ -54,7 +66,7 @@ class Plmodel(pl.LightningModule):
         return self.step(batch, 'test')
     
     def configure_optimizers(self):
-        return torch.optim.SGD(self.parameters(), lr=self.lr)
+        return torch.optim.SGD(self.parameters(), lr=self.lr)#, weight_decay=1e-3)
 
     
     def on_train_epoch_end(self):
@@ -72,11 +84,12 @@ class Plmodel(pl.LightningModule):
     def on_test_epoch_end(self):
         avg_acc = torch.stack(self.test_outputs['acc']).mean()
         self.log('test_acc', avg_acc)
-
+    
 
 def initialize_weights(m):
     if isinstance(m, nn.Conv1d):
-        nn.init.kaiming_normal_(m.weight, mode="fan_out")
+        # nn.init.kaiming_normal_(m.weight, mode="fan_out")
+        nn.init.normal_(m.weight, 0, 1)
         if m.bias is not None:
             nn.init.zeros_(m.bias)
     elif isinstance(m, nn.Linear):
@@ -87,17 +100,24 @@ def initialize_weights(m):
 class MuReNN(Plmodel):
     def __init__(self, **kwargs):
         super(MuReNN, self).__init__(**kwargs)
-        self.tfm = murenn.MuReNNDirect(in_channels=1, Q=self.Q, T=self.T, J=self.J)
+        Jmax = max(self.J) + 1
+        self.tfm = murenn.MuReNNDirect(in_channels=1, Q=self.Q, T=self.T, J=Jmax)
         self.classifier = nn.Sequential(
-            nn.Linear(self.J * self.Q, 1),
+            nn.Linear(len(self.J) * self.Q, 1),
             nn.Sigmoid(),
         )
         self.apply(initialize_weights)
+        self.slide = [q+self.Q*j for j in self.J for q in range(self.Q)]
 
     def forward(self, x):
         xj = self.tfm(x).squeeze(1)
+        xj  = xj[:, self.slide, :]
         logits = self.classifier(xj.mean(dim=-1).reshape(xj.shape[0], -1))
         return logits
+    
+    def on_before_optimizer_step(self, optimizer):
+        norms = grad_norm(self.tfm.conv1d, norm_type=2)
+        self.log_dict(norms, logger=True)
 
 
 class Conv1D(Plmodel):
@@ -107,18 +127,29 @@ class Conv1D(Plmodel):
             [nn.Sequential(
                 nn.Conv1d(1, self.Q, kernel_size=self.T, dilation=2**(j+1), padding='same'),
                 nn.ReLU(),
-            ) for j in range(self.J)]
+            ) for j in self.J]
         )
+
+        self.pool = nn.MaxPool1d(kernel_size=2**(max(self.J) + 1))
         self.classifier = nn.Sequential(
-            nn.Linear(self.J * self.Q, 1),
+            nn.Linear(len(self.J) * self.Q, 1),
             nn.Sigmoid(),
         )
         self.apply(initialize_weights)
 
     def forward(self, x):
-        xj = torch.cat([conv1d(x) for conv1d in self.conv1ds], dim=1)
+        xjs = []
+        for j, conv1d in enumerate(self.conv1ds):
+            xj = conv1d(x)
+            xjs.append(xj)
+        xj = torch.cat(xjs, dim=1) 
+        xj = self.pool(xj)
         logits = self.classifier(xj.mean(dim=-1).reshape(xj.shape[0], -1))
         return logits
+    
+    def on_before_optimizer_step(self, optimizer):
+        norms = grad_norm(self.conv1ds, norm_type=2)
+        self.log_dict(norms, logger=True)
 
 class WaveNetConv(nn.Module):
     def __init__(self, num_features_in, num_features_out, res_features, filter_len, dilation):
@@ -155,15 +186,17 @@ class WaveNet(Plmodel):
     def __init__(self, **kwargs):
         super(WaveNet, self).__init__(**kwargs)
         self.convs = nn.ModuleList([WaveNetConv(self.Q, self.Q, self.Q, self.T, 2**(j+1))
-                                    for j in range(self.J)])
+                                    for j in self.J])
         self.classifer = nn.Sequential(
-            *[nn.ReLU(), nn.Conv1d(self.Q, self.Q, 1), nn.ReLU(), nn.Conv1d(self.Q, 1, 1),
-              nn.Sigmoid()])
+            nn.Linear(self.Q, 1),
+            nn.Sigmoid(),
+        )
+        
         
     def forward(self, x):
         x = x.repeat(1, self.Q, 1)
         res = x.new_zeros((x.shape[0], self.Q, x.shape[-1]))
         for idx, conv in enumerate(self.convs):
             x, res = conv(x, res)
-        logits = self.classifer(res).max(dim=-1)[0].max(dim=-1)[0]
+        logits = self.classifer(res.mean(dim=-1).reshape(res.shape[0], -1))
         return logits

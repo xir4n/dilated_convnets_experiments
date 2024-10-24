@@ -1,9 +1,13 @@
 from models import *
 from data import DataMoudle
 from main import HYPERPARAMS
+from matplotlib import pyplot as plt
 
 dataset = DataMoudle(**HYPERPARAMS['dataset'])
+print(dataset.negative_data.step_list)
 x, y = dataset.dataset[0]
+plt.plot(x.squeeze())
+
 x = x.unsqueeze(0)
 murenn = MuReNN(**HYPERPARAMS['model'])
 murenn(x)
