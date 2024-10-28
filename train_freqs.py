@@ -2,7 +2,7 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "train_subbands"
+project_name = "train_scales"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
 arch = "MuReNN"
 
@@ -11,12 +11,13 @@ Q = 2
 T = 2
 J = 6
 lr = 1e-1
+scale_factors = [0.707, 1, 1.414, 2]
 # Dataset hyperparameters
 num_samples = 1000
 batch_size = 256
 seg_length = 2**10
-step_mins = [1, 2, 4, 8, 16]
-step_maxs = [2, 4, 8, 16, 32]
+step_mins = [1, 2, 4, 8]
+step_maxs = [2, 4, 8, 16]
 
 
 # Create folder.
@@ -25,8 +26,9 @@ os.makedirs(sbatch_dir, exist_ok=True)
 
 experiment_names = []
 for i, step_min in enumerate(step_mins):
+    for scale_factor in scale_factors:
         step_max = step_maxs[i]
-        experiment_name = f"{arch}_f{step_min}-{step_max}.replace('.', '_')"
+        experiment_name = f"s{scale_factor}_f{step_min}-{step_max}.replace('.', '_')"
         experiment_names.append(experiment_name)
         file_name = experiment_name + ".sbatch"
         file_path = os.path.join(sbatch_dir, file_name)
@@ -42,6 +44,7 @@ for i, step_min in enumerate(step_mins):
                 f"--T {T}",
                 f"--J {J}",
                 f"--lr {lr}",
+                f"--scale_factor {scale_factor}",
                 f"--num_samples {num_samples}",
                 f"--batch_size {batch_size}",
                 f"--seg_length {seg_length}",

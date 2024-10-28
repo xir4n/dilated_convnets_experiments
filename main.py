@@ -22,6 +22,7 @@ HYPERPARAMS = { #for test only
         'T': 3,
         'J': 6,
         'lr': 1e-1,
+        'scale_factor': 1,
     },
 }
 

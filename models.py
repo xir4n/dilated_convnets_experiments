@@ -1,6 +1,6 @@
 import types
 import torch
-import murenn
+from nn import MuReNNDirect
 from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import grad_norm
@@ -8,11 +8,12 @@ import data
 
 
 class Plmodel(pl.LightningModule):
-    def __init__(self, Q, T, J, lr, **kwargs):
+    def __init__(self, Q, T, J, lr, scale_factor, **kwargs):
         super(Plmodel, self).__init__()
         self.save_hyperparameters()
         self.T = T
         self.Q = Q
+        self.scale_factor = scale_factor
         if isinstance(J, int):
             self.J = range(J)
         elif isinstance(J, list):
@@ -36,6 +37,8 @@ class Plmodel(pl.LightningModule):
         parser.add_argument('--T', type=int, default=4)
         parser.add_argument('--J', type=int_or_list, default=6, help='Index of octaves to be trained, if list, end by -1 (e.g. 1,-1); if int, all octaves from 0 to J-1 will be trained')
         parser.add_argument('--lr', type=float, default=1e-3)
+        parser.add_argument('--scale_factor', type=float, default=1)
+
         return parent_parser
     
     def step(self, batch, fold):
@@ -101,7 +104,7 @@ class MuReNN(Plmodel):
     def __init__(self, **kwargs):
         super(MuReNN, self).__init__(**kwargs)
         Jmax = max(self.J) + 1
-        self.tfm = murenn.MuReNNDirect(in_channels=1, Q=self.Q, T=self.T, J=Jmax)
+        self.tfm = MuReNNDirect(in_channels=1, Q=self.Q, T=self.T, J=Jmax, scale_factor=self.scale_factor)
         self.classifier = nn.Sequential(
             nn.Linear(len(self.J) * self.Q, 1),
             nn.Sigmoid(),
