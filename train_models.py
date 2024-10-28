@@ -2,10 +2,9 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "train_murenn_scales_all_freq"
+project_name = "train_models_final"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
-# archs = ["MuReNN", "Conv1D", "WaveNet"]
-arch = "MuReNN"
+archs = ["MuReNN", "Conv1D", "WaveNet"]
 n_expers = range(3)
 
 # Model hyperparameters
@@ -13,7 +12,7 @@ Q = 4
 T = 2
 J = 6
 lr = 1e-1
-scale_factors = [0.707, 1, 1.414, 2]
+scale_factor = 1.414
 # Dataset hyperparameters
 num_samples = 1000
 batch_size = 256
@@ -28,8 +27,8 @@ os.makedirs(sbatch_dir, exist_ok=True)
 
 experiment_names = []
 for i in n_expers:
-    for scale_factor in scale_factors:
-        experiment_name = f"s{scale_factor}_n{i}".replace('.', '_')
+    for arch in archs:
+        experiment_name = f"{arch}_n{i}".replace('.', '_')
         experiment_names.append(experiment_name)
         file_name = experiment_name + ".sbatch"
         file_path = os.path.join(sbatch_dir, file_name)
