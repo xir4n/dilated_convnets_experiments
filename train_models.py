@@ -2,9 +2,10 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "train_subbands"
+project_name = "train_murenn_scales_all_freq"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
-archs = ["MuReNN", "Conv1D", "WaveNet"]
+# archs = ["MuReNN", "Conv1D", "WaveNet"]
+arch = "MuReNN"
 n_expers = range(3)
 
 # Model hyperparameters
@@ -12,12 +13,13 @@ Q = 4
 T = 2
 J = 6
 lr = 1e-1
+scale_factors = [0.707, 1, 1.414, 2]
 # Dataset hyperparameters
 num_samples = 1000
 batch_size = 256
 seg_length = 2**10
 step_min = 1
-step_max = 32
+step_max = 16
 
 
 # Create folder.
@@ -26,8 +28,8 @@ os.makedirs(sbatch_dir, exist_ok=True)
 
 experiment_names = []
 for i in n_expers:
-    for arch in archs:
-        experiment_name = f"{arch}_n{i}"
+    for scale_factor in scale_factors:
+        experiment_name = f"s{scale_factor}_n{i}".replace('.', '_')
         experiment_names.append(experiment_name)
         file_name = experiment_name + ".sbatch"
         file_path = os.path.join(sbatch_dir, file_name)
@@ -43,6 +45,7 @@ for i in n_expers:
                 f"--T {T}",
                 f"--J {J}",
                 f"--lr {lr}",
+                f"--scale_factor {scale_factor}",
                 f"--num_samples {num_samples}",
                 f"--batch_size {batch_size}",
                 f"--seg_length {seg_length}",
