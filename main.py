@@ -59,13 +59,18 @@ def train(args):
     )
 
     # Train the model
-    trainer.fit(pl_module, dataset)
-    trainer.test(pl_module, dataset, verbose=False)
+    if not args.test:
+        trainer.fit(pl_module, dataset)
+        trainer.test(pl_module, dataset, verbose=False)
+    else:
+        trainer.test(pl_module, dataset, ckpt_path=args.ckpt_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--save_foler', type=str, default='/Users/zhang/MuReNN/data/dilated_conv1d')
     parser.add_argument('--arch', type=str, default='MuReNN')
+    parser.add_argument('--test', type=bool, default=False, help='if True, run test only')
+    parser.add_argument('--ckpt_path', type=str, default=None)
     # dataset hyperparameters
     parser = DataMoudle.add_data_specific_args(parser)
     # model hyperparameters

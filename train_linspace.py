@@ -2,23 +2,22 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "train_models_final"
+project_name = "linspace"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
-archs = ["MuReNN", "Conv1D", "WaveNet"]
-n_expers = range(3)
+arch = "MuReNN"
 
 # Model hyperparameters
-Q = 4
-T = 2
-J = 6
+Q = 6
+T = 4
+J = 8
 lr = 1e-1
-scale_factor = 1.414
+scale_factors = [0.707, 1, 1.414]
 # Dataset hyperparameters
 num_samples = 1000
 batch_size = 256
-seg_length = 2**10
+seg_length = 2**12
 step_min = 1
-step_max = 16
+step_max = 64
 
 
 # Create folder.
@@ -26,9 +25,9 @@ sbatch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), project_na
 os.makedirs(sbatch_dir, exist_ok=True)
 
 experiment_names = []
-for i in n_expers:
-    for arch in archs:
-        experiment_name = f"{arch}_n{i}".replace('.', '_')
+for scale_factor in scale_factors:
+    # for arch in archs:
+        experiment_name = f"s{scale_factor}".replace('.', '_')
         experiment_names.append(experiment_name)
         file_name = experiment_name + ".sbatch"
         file_path = os.path.join(sbatch_dir, file_name)
@@ -79,6 +78,7 @@ for i in n_expers:
 # Open shell file.
 file_path = os.path.join(sbatch_dir, script_name.split("_")[0] + ".sh") 
 with open(file_path, "w") as f:
+    f.write("# This script searches for Murenn's optimal scale factor when training on data with frequencies distributed in linear spacing. \n")
     for experiment_name in experiment_names:
         file_name = experiment_name + ".sbatch"
         file_path = os.path.join(sbatch_dir, file_name)

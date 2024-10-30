@@ -36,8 +36,8 @@ class Plmodel(pl.LightningModule):
         parser.add_argument('--Q', type=int, default=6)
         parser.add_argument('--T', type=int, default=4)
         parser.add_argument('--J', type=int_or_list, default=6, help='Index of octaves to be trained, if list, end by -1 (e.g. 1,-1); if int, all octaves from 0 to J-1 will be trained')
-        parser.add_argument('--lr', type=float, default=1e-3)
-        parser.add_argument('--scale_factor', type=float, default=1)
+        parser.add_argument('--lr', type=float, default=1e-1)
+        parser.add_argument('--scale_factor', type=float, default=1.414)
 
         return parent_parser
     
@@ -128,7 +128,7 @@ class Conv1D(Plmodel):
         super(Conv1D, self).__init__(**kwargs)
         self.conv1ds = nn.ParameterList(
             [nn.Sequential(
-                nn.Conv1d(1, self.Q, kernel_size=self.T, dilation=2**(j+1), padding='same'),
+                nn.Conv1d(1, self.Q, kernel_size=self.T, dilation=2**(j+1)),
                 nn.ReLU(),
             ) for j in self.J]
         )
@@ -144,10 +144,10 @@ class Conv1D(Plmodel):
         xjs = []
         for j, conv1d in enumerate(self.conv1ds):
             xj = conv1d(x)
-            xjs.append(xj)
+            xjs.append(xj.mean(dim=-1))
         xj = torch.cat(xjs, dim=1) 
         # xj = self.pool(xj)
-        logits = self.classifier(xj.mean(dim=-1).reshape(xj.shape[0], -1))
+        logits = self.classifier(xj.reshape(xj.shape[0], -1))
         return logits
     
     def on_before_optimizer_step(self, optimizer):
