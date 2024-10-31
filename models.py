@@ -20,9 +20,9 @@ class Plmodel(pl.LightningModule):
             self.J = J
         self.loss = nn.BCELoss()
         self.lr = lr
-        self.train_outputs = {'loss': [], 'acc': []}
-        self.test_outputs = {'acc': []}
-        self.val_outputs = {'loss': [], 'acc': []}
+        self.train_outputs = {'loss': []}
+        self.test_outputs = {'acc': [], 'even_correct_count': [], 'even_total_count': [], 'odd_correct_count': [], 'odd_total_count': []}
+        self.val_outputs = {'loss': [], 'acc': [], 'even_correct_count': [], 'even_total_count': [], 'odd_correct_count': [], 'odd_total_count': []}
         
 
     @staticmethod
@@ -40,33 +40,42 @@ class Plmodel(pl.LightningModule):
         parser.add_argument('--scale_factor', type=float, default=1.414)
 
         return parent_parser
-    
-    def step(self, batch, fold):
-        x, label = batch
-        logits = self(x).reshape(label.shape)
-        loss = self.loss(logits, label)
-        acc = ((logits > 0.5).float() == label).float().mean()
-        if fold == 'train':
-            self.train_outputs['loss'].append(loss)
-            self.train_outputs['acc'].append(acc)
-        elif fold == 'val':
-            self.val_outputs['loss'].append(loss)
-            self.val_outputs['acc'].append(acc)
-        elif fold == 'test':
-            self.test_outputs['acc'].append(acc)
-        return loss
+
     
     def forward(self, x):
         return self(x)
 
     def training_step(self, batch, batch_idx):
-        return self.step(batch, 'train')
+        x, label, spacing = batch
+        logits = self(x).reshape(label.shape)
+        loss = self.loss(logits, label)
+        self.train_outputs['loss'].append(loss)
+        return loss
     
     def validation_step(self, batch, batch_idx):
-        return self.step(batch, 'val')
+        x, label, spacing = batch
+        logits = self(x).reshape(label.shape)
+        loss = self.loss(logits, label)
+        correct_preds = ((logits > 0.5).float() == label)
+
+        self.val_outputs['loss'].append(loss)
+        self.val_outputs['acc'].append(correct_preds.float().mean())
+
+        for i, n_spaceing in enumerate(['even', 'odd']):
+            self.val_outputs[f'{n_spaceing}_correct_count'].append(correct_preds[spacing == i].sum())
+            self.val_outputs[f'{n_spaceing}_total_count'].append((spacing == i).sum())
+
     
     def test_step(self, batch, batch_idx):
-        return self.step(batch, 'test')
+        x, label, spacing = batch
+        logits = self(x).reshape(label.shape)
+        correct_preds = ((logits > 0.5).float() == label)
+        self.test_outputs['acc'].append(correct_preds.float().mean())
+        
+        for i, n_spaceing in enumerate(['even', 'odd']):
+            self.test_outputs[f'{n_spaceing}_correct_count'].append(correct_preds[spacing == i].sum())
+            self.test_outputs[f'{n_spaceing}_total_count'].append((spacing == i).sum())
+
     
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=self.lr)#, weight_decay=1e-3)
@@ -74,19 +83,28 @@ class Plmodel(pl.LightningModule):
     
     def on_train_epoch_end(self):
         avg_loss = torch.stack(self.train_outputs['loss']).mean()
-        avg_acc = torch.stack(self.train_outputs['acc']).mean()
         self.log('train_loss', avg_loss)
-        self.log('train_acc', avg_acc)
     
     def on_validation_epoch_end(self):
         avg_loss = torch.stack(self.val_outputs['loss']).mean()
         avg_acc = torch.stack(self.val_outputs['acc']).mean()
         self.log('val_loss', avg_loss)
         self.log('val_acc', avg_acc)
+        
+        for i, n_spaceing in enumerate(['even', 'odd']):
+            correct_count = torch.stack(self.val_outputs[f'{n_spaceing}_correct_count']).sum()
+            total_count = torch.stack(self.val_outputs[f'{n_spaceing}_total_count']).sum()
+            self.log(f'val_{n_spaceing}_acc', correct_count / total_count)
+
     
     def on_test_epoch_end(self):
         avg_acc = torch.stack(self.test_outputs['acc']).mean()
         self.log('test_acc', avg_acc)
+
+        for i, n_spaceing in enumerate(['even', 'odd']):
+            correct_count = torch.stack(self.test_outputs[f'{n_spaceing}_correct_count']).sum()
+            total_count = torch.stack(self.test_outputs[f'{n_spaceing}_total_count']).sum()
+            self.log(f'test_{n_spaceing}_acc', correct_count / total_count)
     
 
 def initialize_weights(m):

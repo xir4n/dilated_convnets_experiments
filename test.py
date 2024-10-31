@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 dataset = DataMoudle(**HYPERPARAMS['dataset'])
 print(dataset.positive_data.step_list)
-x, y = dataset.dataset[0]
+x, y, s = dataset.dataset[0]
 
 x = x.unsqueeze(0)
 murenn = MuReNN(**HYPERPARAMS['model'])
