@@ -58,12 +58,12 @@ class PositiveData(Dataset):
         step = self.step_list[id]
         spacing = step % 2
         T = step * 2
-        padding = self.seg_length - self.seg_length // T * T
+        padding = self.seg_length - self.seg_length // T * T + 1
         x = torch.zeros(self.seg_length)
         x[::step * 2] = 1
         x[step::step * 2] = -1
         x[-padding:] = 0
-        n = torch.randn(self.seg_length) / (step)
+        n = torch.randn(self.seg_length) / 10
         x += n
         return x.unsqueeze(0), torch.tensor(1, dtype=torch.float32), torch.tensor(spacing)
 
@@ -80,13 +80,13 @@ class NegativeData(Dataset):
         step = self.step_list[id]
         spacing = step % 2
         T = step * 4
-        padding = self.seg_length - self.seg_length // T * T
+        padding = self.seg_length - self.seg_length // T * T + 1
         x = torch.zeros(self.seg_length)
         x[::step * 4] = 1
         x[step::step * 4] = 1
         x[2 * step::step * 4] = -1
         x[3 * step::step * 4] = -1
         x[-padding:] = 0
-        n = torch.randn(self.seg_length) / (step)
+        n = torch.randn(self.seg_length) / 10
         x += n
         return x.unsqueeze(0), torch.tensor(0, dtype=torch.float32), torch.tensor(spacing)
