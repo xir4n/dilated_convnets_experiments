@@ -15,7 +15,7 @@ HYPERPARAMS = { #for test only
         'batch_size': 25,
         'seg_length': 2**10,
         'step_min': 1,
-        'step_max': 16,
+        'step_max': 2,
     },
     'model': {
         'Q': 6,
