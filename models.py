@@ -32,12 +32,17 @@ class Plmodel(pl.LightningModule):
                 return int(value)
             except ValueError:
                 return list(map(int, value.split(',')))[:-1]
+        def float_or_list(value):
+            try:
+                return float(value)
+            except ValueError:
+                return list(map(float, value.split(',')))
         parser = parent_parser.add_argument_group("model")
         parser.add_argument('--Q', type=int, default=6)
         parser.add_argument('--T', type=int, default=4)
         parser.add_argument('--J', type=int_or_list, default=6, help='Index of octaves to be trained, if list, end by -1 (e.g. 1,-1); if int, all octaves from 0 to J-1 will be trained')
         parser.add_argument('--lr', type=float, default=1e-3)
-        parser.add_argument('--scale_factor', type=float, default=1)
+        parser.add_argument('--scale_factor', type=float_or_list, default=1)
 
         return parent_parser
     

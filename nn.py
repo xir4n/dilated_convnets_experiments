@@ -29,6 +29,11 @@ class MuReNNDirect(torch.nn.Module):
             J_phi = J
         if J_phi < J:
             raise ValueError("J_phi must be greater or equal to J")
+        if isinstance(scale_factor, int):
+            self.scale_factor = [scale_factor for j in range(J)]
+        else:
+            assert len(scale_factor) == J, f"{len(scale_factor)}"
+            self.scale_factor = scale_factor
         self.T = [T for j in range(J)]
         self.in_channels = in_channels
         self.padding_mode = padding_mode
@@ -58,7 +63,6 @@ class MuReNNDirect(torch.nn.Module):
 
         self.down = torch.nn.ModuleList(down)
         self.conv1d = torch.nn.ParameterList(conv1d)
-        self.scale_factor = scale_factor
 
 
     def forward(self, x):
@@ -77,7 +81,7 @@ class MuReNNDirect(torch.nn.Module):
             Wx_j_r = self.conv1d[j](bps[j].real)
             Wx_j_i = self.conv1d[j](bps[j].imag)
             UWx_j = ModulusStable.apply(Wx_j_r, Wx_j_i)
-            UWx_j = self.down[j](UWx_j) * self.scale_factor ** j
+            UWx_j = self.down[j](UWx_j) * self.scale_factor[j] ** j
             B, _, N = UWx_j.shape
             UWx_j = UWx_j.view(B, self.in_channels, self.Q[j], N)
             UWx.append(UWx_j)
