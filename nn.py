@@ -63,6 +63,7 @@ class MuReNNDirect(torch.nn.Module):
 
         self.down = torch.nn.ModuleList(down)
         self.conv1d = torch.nn.ParameterList(conv1d)
+        self.bn = torch.nn.BatchNorm1d(in_channels)
 
 
     def forward(self, x):
@@ -78,8 +79,10 @@ class MuReNNDirect(torch.nn.Module):
         lp, bps = self.dtcwt(x)
         UWx = []
         for j in range(self.dtcwt.J):
-            Wx_j_r = self.conv1d[j](bps[j].real)
-            Wx_j_i = self.conv1d[j](bps[j].imag)
+            xjr = self.bn(bps[j].real)
+            xji = self.bn(bps[j].imag)
+            Wx_j_r = self.conv1d[j](xjr)
+            Wx_j_i = self.conv1d[j](xji)
             UWx_j = ModulusStable.apply(Wx_j_r, Wx_j_i)
             UWx_j = self.down[j](UWx_j) * self.scale_factor[j]
             B, _, N = UWx_j.shape

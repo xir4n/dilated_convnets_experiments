@@ -2,7 +2,7 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "same_energy_test_low_corrected"
+project_name = "bn_test"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
 arch = "MuReNN"
 
@@ -11,12 +11,12 @@ Q = 2
 T = 2
 J = 6
 lr = 1e-1
-scale_factors = [["1,1,1,1,1,1"], ["1,1,1,1,1,10"], ["1,1,1,1,1,64"], ["1,1,1,1,1,100"], ["1,1,1,1,1,729"]]
+scale_factors = [0.5, 0.707, 1, 1.414, 2, 4]
 # Dataset hyperparameters
 num_samples = 1000
 batch_size = 256
 seg_length = 2**10
-step_min = 8
+step_min = 1
 step_max = 16
 
 
@@ -25,8 +25,8 @@ sbatch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), project_na
 os.makedirs(sbatch_dir, exist_ok=True)
 
 experiment_names = []
-for name, scale_factor in zip([1, 10, 64, 100, 729], scale_factors):
-    experiment_name = f"s{name}".replace('.', '_')
+for  scale_factor in scale_factors:
+    experiment_name = f"s{scale_factor}".replace('.', '_')
     experiment_names.append(experiment_name)
     file_name = experiment_name + ".sbatch"
     file_path = os.path.join(sbatch_dir, file_name)
