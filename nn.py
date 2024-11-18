@@ -43,7 +43,7 @@ class MuReNNDirect(torch.nn.Module):
             J=J,
             padding_mode=padding_mode,
             alternate_gh=False,
-            normalize = False,
+            normalize = True,
         )
 
         for j in range(J):
@@ -63,7 +63,7 @@ class MuReNNDirect(torch.nn.Module):
 
         self.down = torch.nn.ModuleList(down)
         self.conv1d = torch.nn.ParameterList(conv1d)
-        self.insnorm = torch.nn.InstanceNorm1d(in_channels)
+        self.insnorm = torch.nn.InstanceNorm1d(in_channels, momentum=1, track_running_stats=False)
 
 
     def forward(self, x):
@@ -79,11 +79,10 @@ class MuReNNDirect(torch.nn.Module):
         lp, bps = self.dtcwt(x)
         UWx = []
         for j in range(self.dtcwt.J):
-            Wx_j_r = self.conv1d[j](bps[j].real)
-            Wx_j_i = self.conv1d[j](bps[j].imag)
+            Wx_j_r = self.conv1d[j](self.insnorm(bps[j].real))
+            Wx_j_i = self.conv1d[j](self.insnorm(bps[j].imag))
             UWx_j = ModulusStable.apply(Wx_j_r, Wx_j_i)
-            UWx_j = self.down[j](UWx_j) #* self.scale_factor[j]
-            UWx_j = self.insnorm(UWx_j) * self.scale_factor[j]
+            UWx_j = self.down[j](UWx_j) * self.scale_factor[j]
             B, _, N = UWx_j.shape
             UWx_j = UWx_j.view(B, self.in_channels, self.Q[j], N)
             UWx.append(UWx_j)
@@ -192,5 +191,5 @@ class Downsampling(torch.nn.Module):
     def forward(self, x):
         for j in range(self.J_phi):
             x, _ = self.phi(x)
-            x = x[:,:,::2]
+            x = x[:,:,::2] / math.sqrt(2)
         return x

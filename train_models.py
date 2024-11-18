@@ -2,7 +2,7 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "instance_after_down"
+project_name = "instance_norm_v3"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
 arch = "MuReNN"
 
