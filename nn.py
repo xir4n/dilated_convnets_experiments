@@ -80,11 +80,12 @@ class MuReNNDirect(torch.nn.Module):
         UWx = []
         for j in range(self.dtcwt.J):
             # xji = self.bn(bps[j].imag)
-            xj = bps[j] / torch.abs(bps[j]).mean()
+            # xj = bps[j] / torch.abs(bps[j]).mean()
+            xj = bps[j]  * self.scale_factor[j]
             Wx_j_r = self.conv1d[j](xj.real)
             Wx_j_i = self.conv1d[j](xj.imag)
             UWx_j = ModulusStable.apply(Wx_j_r, Wx_j_i)
-            UWx_j = self.down[j](UWx_j) * self.scale_factor[j]
+            UWx_j = self.down[j](UWx_j)# * self.scale_factor[j]
             B, _, N = UWx_j.shape
             UWx_j = UWx_j.view(B, self.in_channels, self.Q[j], N)
             UWx.append(UWx_j)

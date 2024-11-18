@@ -2,7 +2,7 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "sj_test"
+project_name = "scal_factor_before"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
 arch = "MuReNN"
 
