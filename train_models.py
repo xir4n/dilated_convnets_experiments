@@ -2,7 +2,7 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "bn_test_v2"
+project_name = "in_test"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
 arch = "MuReNN"
 
@@ -11,7 +11,7 @@ Q = 2
 T = 2
 J = 6
 lr = 1e-1
-scale_factors = [0.5, 0.707, 1, 1.414, 2, 4]
+scale_factors = [0.5, 1, 1.414, 2, 4]
 # Dataset hyperparameters
 num_samples = 1000
 batch_size = 256

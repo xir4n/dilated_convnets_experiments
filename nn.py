@@ -63,7 +63,7 @@ class MuReNNDirect(torch.nn.Module):
 
         self.down = torch.nn.ModuleList(down)
         self.conv1d = torch.nn.ParameterList(conv1d)
-        self.bn = torch.nn.BatchNorm1d(in_channels)
+        self.insnorm = torch.nn.InstanceNorm1d(in_channels)
 
 
     def forward(self, x):
@@ -80,7 +80,7 @@ class MuReNNDirect(torch.nn.Module):
         UWx = []
         for j in range(self.dtcwt.J):
             # xji = self.bn(bps[j].imag)
-            xj = self.bn(torch.cat([bps[j].real, bps[j].imag], dim=0))
+            xj = self.insnorm(torch.cat([bps[j].real, bps[j].imag], dim=0))
             Wx_j = self.conv1d[j](xj)
             # Wx_j_i = self.conv1d[j](xj.imag)
             B, _, _ = Wx_j.shape
