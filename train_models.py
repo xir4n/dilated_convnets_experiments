@@ -26,7 +26,7 @@ os.makedirs(sbatch_dir, exist_ok=True)
 
 experiment_names = []
 for  lr in lrs:
-    experiment_name = f"s{scale_factor}".replace('.', '_')
+    experiment_name = f"lr_{lr}".replace('.', '_')
     experiment_names.append(experiment_name)
     file_name = experiment_name + ".sbatch"
     file_path = os.path.join(sbatch_dir, file_name)
