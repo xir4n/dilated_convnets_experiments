@@ -20,7 +20,7 @@ class PositiveData(Dataset):
         x = torch.zeros(self.seg_length)
         x[::step * 2] = 1
         x[step::step * 2] = -1
-        # x = (x - x.mean()) / x.std()
+        x = (x - x.mean()) / x.std()
         return x.unsqueeze(0), torch.tensor(1, dtype=torch.float32)
 
 
@@ -44,7 +44,7 @@ class NegativeData(Dataset):
         x[3 * step::step * 4] = -1
         tau = np.random.randint(0, self.seg_length)
         x = x.roll(tau)
-        # x = (x - x.mean()) / x.std()
+        x = (x - x.mean()) / x.std()
         return x.unsqueeze(0), torch.tensor(0, dtype=torch.float32)
 
     
