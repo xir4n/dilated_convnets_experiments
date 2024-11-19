@@ -32,6 +32,12 @@ class MuReNNDirect(torch.nn.Module):
         if isinstance(scale_factor, list):
             assert len(scale_factor) == J, f"{len(scale_factor)}"
             self.scale_factor = scale_factor
+        elif scale_factor == "bn":
+            self.scale_factor = [1 for j in range(J)]
+            self.norm = torch.nn.BatchNorm1d(in_channels)
+        elif scale_factor == "in":
+            self.scale_factor = [1 for j in range(J)]
+            self.norm = torch.nn.InstanceNorm1d(in_channels)
         else:
             self.scale_factor = [scale_factor**j for j in range(J)]
         self.T = [T for j in range(J)]
@@ -58,12 +64,11 @@ class MuReNNDirect(torch.nn.Module):
             torch.nn.init.normal_(conv1d_j.weight)
             conv1d.append(conv1d_j)
     
-            down_j = Downsampling(J_phi - j)
+            down_j = Downsampling(J_phi - j - 1)
             down.append(down_j)
 
         self.down = torch.nn.ModuleList(down)
         self.conv1d = torch.nn.ParameterList(conv1d)
-        self.insnorm = torch.nn.InstanceNorm1d(in_channels, momentum=1, track_running_stats=False)
 
 
     def forward(self, x):
@@ -79,10 +84,14 @@ class MuReNNDirect(torch.nn.Module):
         lp, bps = self.dtcwt(x)
         UWx = []
         for j in range(self.dtcwt.J):
-            Wx_j_r = self.conv1d[j](self.insnorm(bps[j].real))
-            Wx_j_i = self.conv1d[j](self.insnorm(bps[j].imag))
+            if hasattr(self, "norm"):
+                Wx_j_r = self.conv1d[j](self.norm(bps[j].real))
+                Wx_j_i = self.conv1d[j](self.norm(bps[j].imag))
+            else:
+                Wx_j_r = self.conv1d[j](bps[j].real) * self.scale_factor[j]
+                Wx_j_i = self.conv1d[j](bps[j].imag) * self.scale_factor[j]
             UWx_j = ModulusStable.apply(Wx_j_r, Wx_j_i)
-            UWx_j = self.down[j](UWx_j) * self.scale_factor[j]
+            UWx_j = self.down[j](UWx_j)
             B, _, N = UWx_j.shape
             UWx_j = UWx_j.view(B, self.in_channels, self.Q[j], N)
             UWx.append(UWx_j)
@@ -191,5 +200,5 @@ class Downsampling(torch.nn.Module):
     def forward(self, x):
         for j in range(self.J_phi):
             x, _ = self.phi(x)
-            x = x[:,:,::2] / math.sqrt(2)
+            x = x[:,:,::2]
         return x
