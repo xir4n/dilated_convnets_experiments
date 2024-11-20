@@ -2,7 +2,7 @@ import os
 
 script_name = "main"
 script_path = f'{os.getenv("SCRATCH")}/dilated_convnets_experiments/main.py'
-project_name = "instance_norm_lr"
+project_name = "second_layer"
 save_foler = f'{os.getenv("SCRATCH")}/outputs/dilated_convnets_experiments/{project_name}'
 arch = "MuReNN"
 
@@ -10,8 +10,8 @@ arch = "MuReNN"
 Q = 2
 T = 2
 J = 6
-lr = 1e-1
-scale_factors = [0.5, 0.707, 1, 1.414, 2, 'bn', 'in']
+lrs = [1e-1, 1e-2, 1e-3]
+scale_factor = 'in'
 # Dataset hyperparameters
 num_samples = 1000
 batch_size = 256
@@ -25,8 +25,8 @@ sbatch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), project_na
 os.makedirs(sbatch_dir, exist_ok=True)
 
 experiment_names = []
-for  scale_factor in scale_factors:
-    experiment_name = f"s_{scale_factor}".replace('.', '_')
+for  lr in lrs:
+    experiment_name = f"lr_{float(lr)}".replace('.', '_')
     experiment_names.append(experiment_name)
     file_name = experiment_name + ".sbatch"
     file_path = os.path.join(sbatch_dir, file_name)

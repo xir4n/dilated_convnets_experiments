@@ -112,18 +112,28 @@ class MuReNN(Plmodel):
     def __init__(self, **kwargs):
         super(MuReNN, self).__init__(**kwargs)
         Jmax = max(self.J) + 1
-        self.tfm = MuReNNDirect(in_channels=1, Q=self.Q, T=self.T, J=Jmax, scale_factor=self.scale_factor)
+        self.S1 = MuReNNDirect(in_channels=1, Q=self.Q, T=self.T, J=Jmax, scale_factor=self.scale_factor)
+        self.S2 = MuReNNDirect(in_channels=Jmax, Q=self.Q, T=1, J=Jmax//2, scale_factor='in')
         self.classifier = nn.Sequential(
-            nn.Linear(len(self.J) * self.Q, 1),
+            nn.Linear(Jmax//2 * self.Q * Jmax, 1),
             nn.Sigmoid(),
+        )
+        self.pointwiseconv = nn.Conv1d(
+            in_channels=self.Q*len(self.J),
+            out_channels=Jmax,
+            kernel_size=1,
+            bias=True,
         )
         self.apply(initialize_weights)
         self.slide = [q+self.Q*j for j in self.J for q in range(self.Q)]
 
     def forward(self, x):
-        xj = self.tfm(x).squeeze(1)
-        xj  = xj[:, self.slide, :]
-        logits = self.classifier(xj.mean(dim=-1).reshape(xj.shape[0], -1))
+        s = self.S1(x).squeeze(1)
+        s  = s[:, self.slide, :]
+        s = self.pointwiseconv(s)
+        s = self.S2(s)
+        s = s.reshape(1, -1, s.shape[-1])
+        logits = self.classifier(s.mean(dim=-1).reshape(s.shape[0], -1))
         return logits
     
     def on_before_optimizer_step(self, optimizer):
