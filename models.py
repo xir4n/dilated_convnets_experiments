@@ -137,8 +137,10 @@ class MuReNN(Plmodel):
         return logits
     
     def on_before_optimizer_step(self, optimizer):
-        norms = grad_norm(self.tfm.conv1d, norm_type=2)
-        self.log_dict(norms, logger=True)
+        norm1 = grad_norm(self.S1.conv1d, norm_type=2)
+        norm2 = grad_norm(self.S2.conv1d, norm_type=2)
+        self.log_dict(norm1, logger=True)
+        self.log_dict(norm2, logger=True)
 
 
 class Conv1D(Plmodel):
