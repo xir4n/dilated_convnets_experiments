@@ -132,7 +132,7 @@ class MuReNN(Plmodel):
         s  = s[:, self.slide, :]
         s = self.pointwiseconv(s)
         s = self.S2(s)
-        s = s.reshape(1, -1, s.shape[-1])
+        s = s.reshape(s.shape[0], -1, s.shape[-1])
         logits = self.classifier(s.mean(dim=-1).reshape(s.shape[0], -1))
         return logits
     
